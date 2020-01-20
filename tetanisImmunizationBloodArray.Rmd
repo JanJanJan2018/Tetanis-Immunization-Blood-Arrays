@@ -1,0 +1,47 @@
+---
+title: "Tetanis immunization Blood Arrays"
+author: "Janis Corona"
+date: "1/19/2020"
+output: pdf_document
+---
+The immunization data samples obtained from: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE59697
+
+The immunizations samples of Peripheral blood (PB) samples were obtained from healthy donors 6 days after receiving a conventional booster immunization against tetanus-diphtheria toxoids and acellular pertussis, **ImmunizationBloodArraySamples.csv** is the file to get the means but not fold change values because they are all healthy donors having nothing to compare to, except the healthy means of blood samples from these above studies.
+```{r}
+tetanusImmunization <- read.csv('ImmunizationBloodArraySamples.csv', sep=',',
+                                header=T, na.strings=c('',' '))
+head(tetanusImmunization)
+```
+
+The platform gene symbol names haven't been merged with the ID_REF field of the immunization table, lets do that now.
+```{r}
+Imz <- read.delim('GPL4133-12599.txt', sep='\t', header=T, na.strings=c('',' '),
+                  comment.char='#')
+Immz <- Imz[,c(1,10)] # keep only ID and GENE_SYMBOL
+
+#remove NAs
+Immz <- Immz[complete.cases(Immz$GENE_SYMBOL),]
+
+#remove duplicate gene symbols for different IDs
+immz <- Immz[!duplicated(Immz$GENE_SYMBOL),]
+```
+
+
+Merge the gene symbol with the data samples by ID for the tetanus immunization blood samples.
+```{r}
+tetanus <- merge(immz, tetanusImmunization, by.x='ID', by.y='ID_REF')
+Immunization <- tetanus[,-1] #drop ID field
+row.names(Immunization) <- Immunization$GENE_SYMBOL
+```
+
+Get the means of this table using rowMeans
+```{r, error=F, message=F, warning=F}
+Immunization$Tetanis_Means <- rowMeans(Immunization[2:7])
+str(Immunization)
+```
+
+Write this file out to csv.
+```{r}
+write.csv(Immunization, 'tetanisImmunizationBlood.csv', row.names=TRUE)
+```
+
